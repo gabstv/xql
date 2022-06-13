@@ -37,6 +37,8 @@ func Select[T Row](db sqlx.Queryer, dst *[]T, args ...SelectArg) error {
 	var cols []string
 	if vv, ok := any(zv).(WithSelectColumns); ok {
 		cols = vv.SelectColumns()
+	} else if vv, ok := any(&zv).(WithSelectColumns); ok {
+		cols = vv.SelectColumns()
 	} else {
 		cols = Explode(",", ExtractStructTags(zv, "columns", "select_column", "column")...)
 	}
@@ -54,7 +56,15 @@ func Select[T Row](db sqlx.Queryer, dst *[]T, args ...SelectArg) error {
 func SelectContext[T Row](ctx context.Context, db sqlx.QueryerContext, dst *[]T, args ...SelectArg) error {
 	var zv T
 	// extract columns
-	b := squirrel.Select(Explode(",", ExtractStructTags(zv, "columns", "select_column", "column")...)...).From(zv.Table())
+	var cols []string
+	if vv, ok := any(zv).(WithSelectColumns); ok {
+		cols = vv.SelectColumns()
+	} else if vv, ok := any(&zv).(WithSelectColumns); ok {
+		cols = vv.SelectColumns()
+	} else {
+		cols = Explode(",", ExtractStructTags(zv, "columns", "select_column", "column")...)
+	}
+	b := squirrel.Select(cols...).From(zv.Table())
 	for _, arg := range args {
 		b = arg(b)
 	}
