@@ -2,6 +2,7 @@ package xql
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/jmoiron/sqlx"
@@ -62,4 +63,28 @@ func SelectContext[T Row](ctx context.Context, db sqlx.QueryerContext, dst *[]T,
 		return err
 	}
 	return sqlx.SelectContext(ctx, db, dst, q, qargs...)
+}
+
+func Get[T Row](db sqlx.Queryer, dst *T, args ...SelectArg) error {
+	var items []T
+	if err := Select(db, &items, args...); err != nil {
+		return err
+	}
+	if len(items) == 0 {
+		return sql.ErrNoRows
+	}
+	*dst = items[0]
+	return nil
+}
+
+func GetContext[T Row](ctx context.Context, db sqlx.QueryerContext, dst *T, args ...SelectArg) error {
+	var items []T
+	if err := SelectContext(ctx, db, &items, args...); err != nil {
+		return err
+	}
+	if len(items) == 0 {
+		return sql.ErrNoRows
+	}
+	*dst = items[0]
+	return nil
 }
